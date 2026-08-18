@@ -1,5 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
+int fact(int i) {
+  if (i == 1||i==0) 
+    return i;
+  return i * fact(i-1);
+}
 int main(void) {
   int numeros_fact;
   long int valorTemp;
@@ -15,6 +20,11 @@ int main(void) {
       }
       printf("%lld \n", factorialTemp);
     }
+    int numero1,res;
+  scanf("%d", &numero1);
+  res = fact(numero1);
+  printf("%d", res);
+
   return 0;
 }
 
