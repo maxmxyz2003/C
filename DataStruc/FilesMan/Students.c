@@ -2,48 +2,47 @@
 #include <stdlib.h>
 #include <string.h>
 typedef struct{
-    char nombre[50];
-    int clave;
-    float prom;
+    char name[50];
+    int ID;
+    float AVG;
     char Carr[10];
-    int generacion;
-}alumn;
-void InsertaCompu(char *nFile, char *name, float calif, int clave, int gen, char *carr){
+    int Gen;
+}Student;
+typedef struct nodoD{
+    char *Name;
+    char Element[4];
+    struct nodoD * sigDr;    
+} * DRAGON;
+
+void InsertCompu(char *nFile, char *Name, float grade, int nID, int gen, char *carr){
     FILE *fr = fopen(nFile, "ab");
-    if (!fr)
-    {
+    if (!fr){
         exit(EXIT_FAILURE);
     }
-    alumn student;
-    strcpy(student.nombre, name);
-    student.clave = clave;
-    student.generacion = gen;
+    Student student;
+    strcpy(student.name, Name);
+    student.ID = nID;
+    student.Gen = gen;
     strcpy(student.Carr, carr);
-    student.prom = calif; // You can set this to the desired value if needed.
-    fwrite(&student, sizeof(alumn), 1, fr);
+    student.AVG = grade; // You can set this to the desired value if needed.
+    fwrite(&student, sizeof(Student), 1, fr);
     fclose(fr);
 }
-int EliminaCompu(char *nFile, char *name){
+int DelCompu(char *nFile, int id){
     FILE *fr = fopen(nFile, "rb");
-    if (!fr)
-    {
+    if (!fr){        
         exit(1);
     }
     FILE *tempFile = fopen("temp.dat", "ab"); // Temporary file
-    if (!tempFile)
-    {
+    if (!tempFile){    
         exit(1);
     }
-    alumn student;
+    Student student;
     int deleted = 0;
-    while (fread(&student, sizeof(alumn), 1, fr) == 1)
-    {
-        if (strcmp(student.nombre, name) != 0)
-        {
-            fwrite(&student, sizeof(alumn), 1, tempFile);
-        }
-        else
-        {
+    while (fread(&student, sizeof(Student), 1, fr) == 1){
+        if (student.ID!=id){
+            fwrite(&student, sizeof(Student), 1, tempFile);
+        }else{
             deleted = 1;
         }
     }
@@ -53,24 +52,26 @@ int EliminaCompu(char *nFile, char *name){
     rename("temp.dat", nFile);
     return deleted;
 }
-int RemCompu(char *nFile, char *name, float Nuev_calif){
+int ReplCompu(char *nFile, int id, float Ngrade, int gen, char *carr){
     FILE *fr = fopen(nFile, "rb");
     if (!fr){
-        exit(1);
+        exit(EXIT_FAILURE);
     }
-    FILE *tempFile = fopen("temp.dat", "ab"); // Temporary file
+    FILE *tempFile = fopen("temp.dat", "ab");
     if (!tempFile){
-        exit(1);
+        exit(EXIT_FAILURE);
     }
-    alumn student;
+    Student student;
     int replaced = 0;
-    while (fread(&student, sizeof(alumn), 1, fr) == 1){
-        if (strcmp(student.nombre, name) != 0){
-            fwrite(&student, sizeof(alumn), 1, tempFile);
+    while (fread(&student, sizeof(Student), 1, fr) == 1){
+        if (student.ID!=id){
+            fwrite(&student, sizeof(Student), 1, tempFile);
         }
         else{
-            student.prom = Nuev_calif;
-            fwrite(&student, sizeof(alumn), 1, tempFile);
+            student.AVG = Ngrade;
+            strcpy(student.Carr, carr);
+            student.Gen=gen;
+            fwrite(&student, sizeof(Student), 1, tempFile);
             replaced = 1;
         }
     }
@@ -80,254 +81,604 @@ int RemCompu(char *nFile, char *name, float Nuev_calif){
     rename("temp.dat", nFile);
     return replaced;
 }
+void AccessCompu(char *nFile, int id){
+    FILE *fr = fopen(nFile, "rb");
+    if (!fr){
+        exit(1);
+    }
+    Student student;
+    int trouve = 0;
+    while (fread(&student, sizeof(Student), 1, fr) == 1){
+        if (student.ID==id){
+            printf("Name: %s Average: %.2f, ID:%d Career:%s Generation:%d \n", student.name,student.AVG, student.ID, student.Carr,student.Gen);
+            trouve=1;
+        }
+    }    
+    fclose(fr);
+    if(!trouve){
+        printf("404 Not found error: %d ", id);
+    }
+}
 
-int CambiaCompu(char *nFile, char *name, char *carr, float La_calif, int LaGen, int LaClave, float nuevaCalif, char *nuevCarr, int nuevaGen){
+
+void SortCompu1(char *nFile) {
+    int opt;
+    int C = 0, changes, SizeFile;
+    printf("By Name(1), AVG (2), ID (3), Career(4), Generation(5)?");
+    scanf("%d", &opt);
     FILE *fr = fopen(nFile, "rb");
     if (!fr){
         exit(1);
     }
-    FILE *tempFile = fopen("temp.dat", "ab"); // Temporary file
-    if (!tempFile){
-        exit(1);
-    }
-    alumn student;
-    int replaced = 0;
-    while (fread(&student, sizeof(alumn), 1, fr) == 1){
-        if (strcmp(student.nombre, name) != 0){
-            fwrite(&student, sizeof(alumn), 1, tempFile);
-        }
-        else{
-            if (strcmp(student.Carr, carr)==0 && La_calif==student.prom&&LaClave==student.clave&&student.generacion==LaGen){
-                student.prom = nuevaCalif;
-                strcpy(student.Carr, nuevCarr);
-                student.generacion=nuevaGen;
-                fwrite(&student, sizeof(alumn), 1, tempFile);
-                replaced = 1;
-            }            
-        }
+    Student minStud, TempStudent;
+    fseek(fr,0,SEEK_SET);
+    while (fread(&TempStudent, sizeof(Student), 1, fr)==1){
+        C++;
     }
     fclose(fr);
-    fclose(tempFile);
-    remove(nFile);
-    rename("temp.dat", nFile);
-    return replaced;
-}
-int AccessCompu(char *nFile, char *name, char *carr, float La_calif, int LaGen, int LaClave){
-    FILE *fr = fopen(nFile, "rb");
-    if (!fr){
+    fseek(fr,0,SEEK_SET);
+    for (int i = 0; i < C; C++){
+        FILE *fr = fopen(nFile, "rb");
+        if (!fr){
+            exit(1);
+        }
+        FILE *TempAux = fopen("Aux.dat", "rb");
+        if (!TempAux){
+            exit(1);
+        }
+        fseek(fr,0,SEEK_SET);
+        fread(&minStud, sizeof(Student), 1, fr);
+        while (fread(&TempStudent, sizeof(Student), 1, fr)==1){
+            if (TempStudent.ID<minStud.ID){
+                minStud=TempStudent;
+            }
+        }
+        fwrite(&minStud,sizeof(Student),1,TempAux);
+        printf("Min #0=%s", minStud.name);
+        fclose(fr);fclose(TempAux);
+        DelCompu(nFile, minStud.ID);
+    }
+    remove(nFile); rename("Aux.dat",nFile);
+}    
+
+void ordenamiento_Alu(){
+    FILE *fr;
+    Student a, b, reg1, reg2;
+    int op, SizeStudent=sizeof(Student), changes, SizeFile;
+    fr = fopen("database.dat", "r+b");
+    if (!fr) {
         exit(1);
     }
-    alumn student;
-    int replaced = 0;
-    while (fread(&student, sizeof(alumn), 1, fr) == 1){
-        if (strcmp(student.nombre, name)==0 && La_calif==student.prom&&student.generacion==LaGen&& LaClave==student.clave&&strcmp(student.Carr, carr)==0){
-            printf("Nombre: %s Calificacion: %.2f, Clave:%d Carrera:%s Generacion:%d ", student.nombre,student.prom, student.clave, student.Carr,student.generacion);
-            replaced=1;
-        }
-    }    
-    fclose(fr);
-    return replaced;
-}
-int AccessCompu2(char *nFile, char *name){
-    FILE *fr = fopen(nFile, "rb");
-    if (!fr){
-        exit(1);
+    printf("By Name(1), AVG(2), ID(3), Career(4), Generation(5) ?\n");
+    scanf("%d", &op);
+    int ascd;
+    printf("Desc (1) or Ascd(2)?\n");
+    scanf("%d", &ascd);    
+    switch(op){
+        case 1:
+            fseek(fr, 0, SEEK_END);
+            SizeFile = ftell(fr);
+            if(ascd==2){
+                do {
+                changes = 0;
+                    fseek(fr, 0, SEEK_SET);
+                    int CurrPos = 0, nextReg = SizeStudent;
+                    while (nextReg < SizeFile) {
+                        fseek(fr, CurrPos, SEEK_SET);
+                        fread(&a, SizeStudent, 1, fr);
+                        fseek(fr, nextReg, SEEK_SET);
+                        fread(&b, SizeStudent, 1, fr);
+                        if (strcmp(a.name, b.name) < 0) {
+                            fseek(fr, CurrPos, SEEK_SET);
+                            fread(&reg1, SizeStudent, 1, fr);
+                            fseek(fr, nextReg, SEEK_SET);
+                            fread(&reg2, SizeStudent, 1, fr);
+                            fseek(fr, CurrPos, SEEK_SET);
+                            fwrite(&reg2, SizeStudent, 1, fr);
+                            fseek(fr, nextReg, SEEK_SET);
+                            fwrite(&reg1, SizeStudent, 1, fr);
+                            changes++;
+                        }
+                        CurrPos = nextReg;
+                        nextReg += SizeStudent;
+                    }
+                    SizeFile -= SizeStudent;
+                }while (changes > 0);
+            }else{
+                do {
+                changes = 0;
+                    fseek(fr, 0, SEEK_SET);
+                    int CurrPos = 0, nextReg = SizeStudent;
+                    while (nextReg < SizeFile) {
+                        fseek(fr, CurrPos, SEEK_SET);
+                        fread(&a, SizeStudent, 1, fr);
+                        fseek(fr, nextReg, SEEK_SET);
+                        fread(&b, SizeStudent, 1, fr);
+                        if (strcmp(a.name,b.name)> 0) {
+                            fseek(fr, CurrPos, SEEK_SET);
+                            fread(&reg1, SizeStudent, 1, fr);
+                            fseek(fr, nextReg, SEEK_SET);
+                            fread(&reg2, SizeStudent, 1, fr);
+                            fseek(fr, CurrPos, SEEK_SET);
+                            fwrite(&reg2, SizeStudent, 1, fr);
+                            fseek(fr, nextReg, SEEK_SET);
+                            fwrite(&reg1, SizeStudent, 1, fr);
+                            changes++;
+                        }
+                        CurrPos = nextReg;
+                        nextReg += SizeStudent;
+                    }
+                    SizeFile -= SizeStudent;
+                }while (changes > 0);
+            }
+            break;
+        case 2:
+            fseek(fr, 0, SEEK_END);
+            SizeFile = ftell(fr);
+            if(ascd==2){
+                do {
+                changes = 0;
+                    fseek(fr, 0, SEEK_SET);
+                    int CurrPos = 0, nextReg = SizeStudent;
+                    while (nextReg < SizeFile) {
+                        fseek(fr, CurrPos, SEEK_SET);
+                        fread(&a, SizeStudent, 1, fr);
+                        fseek(fr, nextReg, SEEK_SET);
+                        fread(&b, SizeStudent, 1, fr);
+                        if (a.AVG>b.AVG) {
+                            fseek(fr, CurrPos, SEEK_SET);
+                            fread(&reg1, SizeStudent, 1, fr);
+                            fseek(fr, nextReg, SEEK_SET);
+                            fread(&reg2, SizeStudent, 1, fr);
+                            fseek(fr, CurrPos, SEEK_SET);
+                            fwrite(&reg2, SizeStudent, 1, fr);
+                            fseek(fr, nextReg, SEEK_SET);
+                            fwrite(&reg1, SizeStudent, 1, fr);
+                            changes++;
+                        }
+                        CurrPos = nextReg;
+                        nextReg += SizeStudent;
+                    }
+                    SizeFile -= SizeStudent;
+            }while (changes > 0);
+            }else{
+                do {
+                changes = 0;
+                    fseek(fr, 0, SEEK_SET);
+                    int CurrPos = 0, nextReg = SizeStudent;
+                    while (nextReg < SizeFile) {
+                        fseek(fr, CurrPos, SEEK_SET);
+                        fread(&a, SizeStudent, 1, fr);
+                        fseek(fr, nextReg, SEEK_SET);
+                        fread(&b, SizeStudent, 1, fr);
+                        if (a.AVG<b.AVG) {
+                            fseek(fr, CurrPos, SEEK_SET);
+                            fread(&reg1, SizeStudent, 1, fr);
+                            fseek(fr, nextReg, SEEK_SET);
+                            fread(&reg2, SizeStudent, 1, fr);
+                            fseek(fr, CurrPos, SEEK_SET);
+                            fwrite(&reg2, SizeStudent, 1, fr);
+                            fseek(fr, nextReg, SEEK_SET);
+                            fwrite(&reg1, SizeStudent, 1, fr);
+                            changes++;
+                        }
+                        CurrPos = nextReg;
+                        nextReg += SizeStudent;
+                    }
+                    SizeFile -= SizeStudent;
+                }while (changes > 0);
+            }
+            break;
+        case 3:
+            fseek(fr, 0, SEEK_END);
+            SizeFile = ftell(fr);
+            if(ascd==1){
+                do {
+                changes = 0;
+                    fseek(fr, 0, SEEK_SET);
+                    int CurrPos = 0, nextReg = SizeStudent;
+                    while (nextReg < SizeFile) {
+                        fseek(fr, CurrPos, SEEK_SET);
+                        fread(&a, SizeStudent, 1, fr);
+                        fseek(fr, nextReg, SEEK_SET);
+                        fread(&b, SizeStudent, 1, fr);
+                        if (a.ID<b.ID){
+                            fseek(fr, CurrPos, SEEK_SET);
+                            fread(&reg1, SizeStudent, 1, fr);
+                            fseek(fr, nextReg, SEEK_SET);
+                            fread(&reg2, SizeStudent, 1, fr);
+                            fseek(fr, CurrPos, SEEK_SET);
+                            fwrite(&reg2, SizeStudent, 1, fr);
+                            fseek(fr, nextReg, SEEK_SET);
+                            fwrite(&reg1, SizeStudent, 1, fr);
+                            changes++;
+                        }
+                        CurrPos = nextReg;
+                        nextReg += SizeStudent;
+                    }
+                    SizeFile -= SizeStudent;
+                }while (changes > 0);
+            }else{
+                do {
+                changes = 0;
+                    fseek(fr, 0, SEEK_SET);
+                    int CurrPos = 0, nextReg = SizeStudent;
+                    while (nextReg < SizeFile) {
+                        fseek(fr, CurrPos, SEEK_SET);
+                        fread(&a, SizeStudent, 1, fr);
+                        fseek(fr, nextReg, SEEK_SET);
+                        fread(&b, SizeStudent, 1, fr);
+                        if (a.ID>b.ID) {
+                            fseek(fr, CurrPos, SEEK_SET);
+                            fread(&reg1, SizeStudent, 1, fr);
+                            fseek(fr, nextReg, SEEK_SET);
+                            fread(&reg2, SizeStudent, 1, fr);
+                            fseek(fr, CurrPos, SEEK_SET);
+                            fwrite(&reg2, SizeStudent, 1, fr);
+                            fseek(fr, nextReg, SEEK_SET);
+                            fwrite(&reg1, SizeStudent, 1, fr);
+                            changes++;
+                        }
+                        CurrPos = nextReg;
+                        nextReg += SizeStudent;
+                    }
+                    SizeFile -= SizeStudent;
+                    }while (changes > 0);
+                }
+                break;
+        case 4:
+            fseek(fr, 0, SEEK_END);
+            SizeFile = ftell(fr);
+            if(ascd==1){
+                do {
+                changes = 0;
+                    fseek(fr, 0, SEEK_SET);
+                    int CurrPos = 0, nextReg = SizeStudent;
+                    while (nextReg < SizeFile) {
+                        fseek(fr, CurrPos, SEEK_SET);
+                        fread(&a, SizeStudent, 1, fr);
+                        fseek(fr, nextReg, SEEK_SET);
+                        fread(&b, SizeStudent, 1, fr);
+                        if (strcmp(a.Carr, b.Carr) > 0) {
+                            fseek(fr, CurrPos, SEEK_SET);
+                            fread(&reg1, SizeStudent, 1, fr);
+                            fseek(fr, nextReg, SEEK_SET);
+                            fread(&reg2, SizeStudent, 1, fr);
+                            fseek(fr, CurrPos, SEEK_SET);
+                            fwrite(&reg2, SizeStudent, 1, fr);
+                            fseek(fr, nextReg, SEEK_SET);
+                            fwrite(&reg1, SizeStudent, 1, fr);
+                            changes++;
+                        }
+                        CurrPos = nextReg;
+                        nextReg += SizeStudent;
+                    }
+                    SizeFile -= SizeStudent;
+                }while (changes > 0);
+            }else{
+                do {
+                changes = 0;
+                    fseek(fr, 0, SEEK_SET);
+                    int CurrPos = 0, nextReg = SizeStudent;
+                    while (nextReg < SizeFile) {
+                        fseek(fr, CurrPos, SEEK_SET);
+                        fread(&a, SizeStudent, 1, fr);
+                        fseek(fr, nextReg, SEEK_SET);
+                        fread(&b, SizeStudent, 1, fr);
+                        if (strcmp(a.Carr,b.Carr)< 0) {
+                            fseek(fr, CurrPos, SEEK_SET);
+                            fread(&reg1, SizeStudent, 1, fr);
+                            fseek(fr, nextReg, SEEK_SET);
+                            fread(&reg2, SizeStudent, 1, fr);
+                            fseek(fr, CurrPos, SEEK_SET);
+                            fwrite(&reg2, SizeStudent, 1, fr);
+                            fseek(fr, nextReg, SEEK_SET);
+                            fwrite(&reg1, SizeStudent, 1, fr);
+                            changes++;
+                        }
+                        CurrPos = nextReg;
+                        nextReg += SizeStudent;
+                    }
+                    SizeFile -= SizeStudent;
+                }while (changes > 0);
+                }
+                break;
+        case 5:
+            fseek(fr, 0, SEEK_END);
+            SizeFile = ftell(fr);
+            if(ascd==1){
+                do {
+                changes = 0;
+                    fseek(fr, 0, SEEK_SET);
+                    int CurrPos = 0, nextReg = SizeStudent;
+                    while (nextReg < SizeFile) {
+                        fseek(fr, CurrPos, SEEK_SET);
+                        fread(&a, SizeStudent, 1, fr);
+                        fseek(fr, nextReg, SEEK_SET);
+                        fread(&b, SizeStudent, 1, fr);
+                        if (a.Gen<b.Gen){
+                            fseek(fr, CurrPos, SEEK_SET);
+                            fread(&reg1, SizeStudent, 1, fr);
+                            fseek(fr, nextReg, SEEK_SET);
+                            fread(&reg2, SizeStudent, 1, fr);
+                            fseek(fr, CurrPos, SEEK_SET);
+                            fwrite(&reg2, SizeStudent, 1, fr);
+                            fseek(fr, nextReg, SEEK_SET);
+                            fwrite(&reg1, SizeStudent, 1, fr);
+                            changes++;
+                        }
+                        CurrPos = nextReg;
+                        nextReg += SizeStudent;
+                    }
+                    SizeFile -= SizeStudent;
+                }while (changes > 0);
+            }else{
+                do {
+                changes = 0;
+                    fseek(fr, 0, SEEK_SET);
+                    int CurrPos = 0, nextReg = SizeStudent;
+                    while (nextReg < SizeFile) {
+                        fseek(fr, CurrPos, SEEK_SET);
+                        fread(&a, SizeStudent, 1, fr);
+                        fseek(fr, nextReg, SEEK_SET);
+                        fread(&b, SizeStudent, 1, fr);
+                        if (a.Gen>b.Gen) {
+                            fseek(fr, CurrPos, SEEK_SET);
+                            fread(&reg1, SizeStudent, 1, fr);
+                            fseek(fr, nextReg, SEEK_SET);
+                            fread(&reg2, SizeStudent, 1, fr);
+                            fseek(fr, CurrPos, SEEK_SET);
+                            fwrite(&reg2, SizeStudent, 1, fr);
+                            fseek(fr, nextReg, SEEK_SET);
+                            fwrite(&reg1, SizeStudent, 1, fr);
+                            changes++;
+                        }
+                        CurrPos = nextReg;
+                        nextReg += SizeStudent;
+                    }
+                    SizeFile -= SizeStudent;
+                    }while (changes > 0);
+                }
+                break;
+        default:
+            printf("ERROR\n");
+            break;
     }
-    alumn student;
-    int replaced = 0;
-    while (fread(&student, sizeof(alumn), 1, fr) == 1){
-        if (!strcmp(student.nombre, name)){
-            printf("Nombre: %s Calificacion: %.2f, Clave:%d Carrera:%s Generacion:%d ", student.nombre,student.prom, student.clave, student.Carr,student.generacion);
-            replaced=1;
-        }
-        else{
-            continue;
-        }
-    }    
-    fclose(fr);
-    return replaced;
 }
-void ImprimeCompu(char *nFile){
+void FilterAVGHighCompu(char *nFile, float Lgrade){
     FILE *fr = fopen(nFile, "rb");
     if (!fr){
         exit(1);
     }
     int cont = 0;
-    alumn student;
-    printf("| Nombre | Calificacion | Clave | Carrera | Generacion |\n");
-    while (fread(&student, sizeof(alumn), 1, fr) == 1){
-        // printf("Alumno #%d{\nNombre = %s\nCalificacion = %f\nClave = %d\nCarrera = %s\nGeneracion = %d\n}",cont, student.nombre, student.prom, student.clave, student.Carr, student.generacion);
-        printf("#%d %s\t%.2f\t%d\t%s\t%d\n",cont+1, student.nombre, student.prom, student.clave, student.Carr, student.generacion);
+    Student student;
+    printf("| Name | AVG>%f | ID | Career | Generation |\n");
+    while (fread(&student, sizeof(Student), 1, fr) == 1){
+        // printf("Studento #%d{\nname = %s\ngradeicacion = %f\nID = %d\nCarrera = %s\nGen = %d\n}",cont, student.name, student.AVG, student.ID, student.Carr, student.Gen);
+        if(student.AVG>Lgrade){    
+            printf("#%d %s\t%.2f\t%d\t%s\t%d\n",cont+1, student.name, student.AVG, student.ID, student.Carr, student.Gen);
+            cont++;
+        }
+    }
+    fclose(fr);
+}
+void FilterAVGLowCompu(char *nFile, float Lgrade){
+    FILE *fr = fopen(nFile, "rb");
+    if (!fr){
+        exit(1);
+    }
+    int cont = 0;
+    Student student;
+    printf("| Name | AVG<=%f | ID | Career | Generation |\n");
+    while (fread(&student, sizeof(Student), 1, fr) == 1){
+        // printf("Studento #%d{\nname = %s\ngradeicacion = %f\nID = %d\nCarrera = %s\nGen = %d\n}",cont, student.name, student.AVG, student.ID, student.Carr, student.Gen);
+        if(student.AVG<=Lgrade){    
+            printf("#%d %s\t%.2f\t%d\t%s\t%d\n",cont+1, student.name, student.AVG, student.ID, student.Carr, student.Gen);
+            cont++;
+        }
+        
+    }
+    fclose(fr);
+}
+void FilterGenerCompu(char *nFile, int Gen){
+    FILE *fr = fopen(nFile, "rb");
+    if (!fr){
+        exit(1);
+    }
+    int cont = 0;
+    Student student;
+    printf("| Name | AVG | ID | Career | %d |\n", Gen);
+    while (fread(&student, sizeof(Student), 1, fr) == 1){
+        // printf("Studento #%d{\nname = %s\ngradeicacion = %f\nID = %d\nCarrera = %s\nGen = %d\n}",cont, student.name, student.AVG, student.ID, student.Carr, student.Gen);
+        if(student.Gen==Gen){    
+            printf("#%d %s\t%.2f\t%d\t%s\n",cont+1, student.name, student.AVG, student.ID, student.Carr);
+            cont++;
+        }
+    }
+    fclose(fr);
+}
+void FilterCareerCompu(char *nFile, char *career){
+    FILE *fr = fopen(nFile, "rb");
+    if (!fr){
+        exit(1);
+    }
+    int cont = 0;
+    Student student;
+    printf("| Name | AVG | ID |  %s | Generation |\n", career);
+    while (fread(&student, sizeof(Student), 1, fr) == 1){
+        // printf("Studento #%d{\nname = %s\ngradeicacion = %f\nID = %d\nCarrera = %s\nGen = %d\n}",cont, student.name, student.AVG, student.ID, student.Carr, student.Gen);
+        if(!strcmp(career, student.Carr)){    
+            printf("#%d %s\t%.2f\t%d\t%d\n",cont+1, student.name, student.AVG, student.ID, student.Gen);
+            cont++;
+        }  
+    }
+    fclose(fr);
+}
+
+void PrintfCompu(char *nFile){
+    FILE *fr = fopen(nFile, "rb");
+    if (!fr){
+        exit(1);
+    }
+    int cont = 0;
+    Student student;
+    // printf("| Name | AVG | ID | Career | Generation |\n");
+    while (fread(&student, sizeof(Student), 1, fr) == 1){
+        printf("%d %s %f %d %s %d\n", cont,student.name, student.AVG, student.ID, student.Carr, student.Gen);
+        // printf("\n%s\n%f\n%d\n%s\n%d\n", student.name, student.AVG, student.ID, student.Carr, student.Gen);
+        // printf("Studento #%d{\nname = %s\ngradeicacion = %f\nID = %d\nCarrera = %s\nGen = %d\n}",cont, student.name, student.AVG, student.ID, student.Carr, student.Gen);
+        //printf("#%d %s\t%.2f\t%d\t%s\t%d\n",cont+1, student.name, student.AVG, student.ID, student.Carr, student.Gen);
         cont++;
     }
     fclose(fr);
 }
-void FiltraApCompu(char *nFile, float Lcalif){
-    FILE *fr = fopen(nFile, "rb");
-    if (!fr){
-        exit(1);
-    }
-    int cont = 0;
-    alumn student;
-    printf("| Nombre | Calificacion | Clave | Carrera | Generacion |\n");
-    while (fread(&student, sizeof(alumn), 1, fr) == 1){
-        // printf("Alumno #%d{\nNombre = %s\nCalificacion = %f\nClave = %d\nCarrera = %s\nGeneracion = %d\n}",cont, student.nombre, student.prom, student.clave, student.Carr, student.generacion);
-        if(student.prom>Lcalif){    
-            printf("#%d %s\t%.2f\t%d\t%s\t%d\n",cont+1, student.nombre, student.prom, student.clave, student.Carr, student.generacion);
-            cont++;
-        }
-        
-    }
-    fclose(fr);
-}
-void FiltraReCompu(char *nFile, float Lcalif){
-    FILE *fr = fopen(nFile, "rb");
-    if (!fr){
-        exit(1);
-    }
-    int cont = 0;
-    alumn student;
-    printf("| Nombre | Calificacion | Clave | Carrera | Generacion |\n");
-    while (fread(&student, sizeof(alumn), 1, fr) == 1){
-        // printf("Alumno #%d{\nNombre = %s\nCalificacion = %f\nClave = %d\nCarrera = %s\nGeneracion = %d\n}",cont, student.nombre, student.prom, student.clave, student.Carr, student.generacion);
-        if(student.prom<=Lcalif){    
-            printf("#%d %s\t%.2f\t%d\t%s\t%d\n",cont+1, student.nombre, student.prom, student.clave, student.Carr, student.generacion);
-            cont++;
-        }
-        
-    }
-    fclose(fr);
-}
-void FiltraGenCompu(char *nFile, int Gen){
-    FILE *fr = fopen(nFile, "rb");
-    if (!fr){
-        exit(1);
-    }
-    int cont = 0;
-    alumn student;
-    printf("| Nombre | Calificacion | Clave | Carrera | Generacion |\n");
-    while (fread(&student, sizeof(alumn), 1, fr) == 1){
-        // printf("Alumno #%d{\nNombre = %s\nCalificacion = %f\nClave = %d\nCarrera = %s\nGeneracion = %d\n}",cont, student.nombre, student.prom, student.clave, student.Carr, student.generacion);
-        if(student.generacion==Gen){    
-            printf("#%d %s\t%.2f\t%d\t%s\t%d\n",cont+1, student.nombre, student.prom, student.clave, student.Carr, student.generacion);
-            cont++;
-        }
-    }
-    fclose(fr);
-}
-void FiltraCarrCompu(char *nFile, char *carrera){
-    FILE *fr = fopen(nFile, "rb");
-    if (!fr){
-        exit(1);
-    }
-    int cont = 0;
-    alumn student;
-    printf("| Nombre | Calificacion | Clave | Carrera | Generacion |\n");
-    while (fread(&student, sizeof(alumn), 1, fr) == 1){
-        // printf("Alumno #%d{\nNombre = %s\nCalificacion = %f\nClave = %d\nCarrera = %s\nGeneracion = %d\n}",cont, student.nombre, student.prom, student.clave, student.Carr, student.generacion);
-        if(!strcmp(carrera, student.Carr)){    
-            printf("#%d %s\t%.2f\t%d\t%s\t%d\n",cont+1, student.nombre, student.prom, student.clave, student.Carr, student.generacion);
-            cont++;
-        }
-       
-    }
-    fclose(fr);
-}
-
-
 int main(void){
-    char tempnam[100] = "Jorge_Alberto_Suarez_Saldaña";
-    int Miclave = 10, fin = 0, opc = 0;
-    float p;
-    int gener;
-    char nombreArc[] = "database.dat"; // Change the file extension to .dat for binary data
-    char carrera[50];
-    while (!fin){
-        printf("Que quieres hacer?\n Imprimir(0),Agregar(1), Eliminar(2), Reemplazar(3), Consulta(4), Filtro(5)\n");
-        scanf("%d", &opc);
-        switch (opc){
+    char TempName[100];
+    int TempID, End = 0, TempOpt;
+    float TempGrade;
+    int Gener;
+    char FileName[] = "database.dat"; // Change the file extension to .dat for binary data
+    char Career[50];
+    int Times = 0, TempCount=0;
+    while (!End){
+        printf("What do you want to do?\nPrint Data(0)\tAdd data(1)\tDelete data(2)\tReplace data(3)\tConsult(4)\tFilter data(5)\tSort data(6)\t Make a BackUp(7)\n");
+        scanf("%d", &TempOpt);
+        switch (TempOpt){
         case 0:
-            ImprimeCompu(nombreArc);
+            PrintfCompu(FileName);
             break;
         case 1:
-            printf("Nombre:\n");
-            scanf("%s", tempnam);
-            printf("Calificacion:\n");
-            scanf("%f", &p);
-            printf("Clave:\n");
-            scanf("%d", &Miclave);
-            printf("Generación:\n");
-            scanf("%d", &gener);
-            printf("Carrera:\n");
-            scanf("%s", carrera);
-            InsertaCompu(nombreArc, tempnam, p, Miclave, gener, carrera);
+            printf("How many insertions? ");
+            scanf("%d", &Times);
+            TempCount=0;
+            while (Times>0){
+                printf("Insertion #%d\n", TempCount++);
+                printf("Name: ");
+                scanf("%s", TempName);
+                printf("Average: ");
+                scanf("%f", &TempGrade);
+                printf("ID: ");
+                scanf("%d", &TempID);
+                printf("Generation: ");
+                scanf("%d", &Gener);
+                printf("Career: ");
+                scanf("%s", Career);
+                InsertCompu(FileName, TempName, TempGrade, TempID, Gener, Career);
+                Times--;
+            }
             break;
         case 2:
-            printf("Nombre:\n");
-            scanf("%s", tempnam);
-            EliminaCompu(nombreArc, tempnam);
+            printf("How many deletes? ");
+            scanf("%d", &Times);
+            TempCount=0;
+            while (Times>0){
+                printf("Delete #%d\n", TempCount++);
+                printf("ID: ");
+                scanf("%d", &TempID);
+                if(DelCompu(FileName, TempID)){
+                    printf("Deleted data: %d\n",TempID);
+                }else{
+                    printf("404 Not found %d error\n", TempID);
+                }
+                Times--;
+            }         
             break;
         case 3:
-            int cuantos = 0;
-            printf("Cuantos reemplazos/actualizaciones?\n");
-            scanf("%d", &cuantos);
-            while (cuantos > 0){
-                printf("Nombre:\n");
-                scanf("%s", tempnam);
-                printf("Nueva Calificación:\n");
-                scanf("%f", &p);
-                RemCompu(nombreArc, tempnam, p);
-                cuantos--;
+            printf("How many replaces?\n");
+            scanf("%d", &Times);
+            TempCount=0;
+            while (Times > 0){
+                printf("Replace #%d\n", TempCount++);
+                printf("ID: ");
+                scanf("%d", &TempID);
+                printf("New grade: ");
+                scanf("%f", &TempGrade);
+                printf("New generation: ");
+                scanf("%d", &Gener);
+                printf("New career: ");
+                scanf("%s", Career);
+                if(ReplCompu(FileName, TempID, TempGrade, Gener, Career)){
+                    printf("Replaced: %d\n", TempID);
+                }
+                Times--;
             }
             break;
         case 4:
-            printf("Que buscas? Nombre(1) Clave(2)");
-            printf("Nombre:\n");
-            scanf("%s", tempnam);
-            if(AccessCompu2(nombreArc, tempnam)){
-                printf("\n");
-            }else{
-                printf("No encontrado\n");
+            printf("How many access?\n");
+            scanf("%d", &Times);
+            TempCount=0;
+            while (Times > 0){
+                printf("Access #%d\n", TempCount++);
+                printf("ID: ");
+                scanf("%d", &TempID);
+                AccessCompu(FileName, TempID);            
+                Times--;
             }
             break;
         case 5:
-            printf("Filtrar por Promedio(1), Generacion(2), Carrera(3)\n");
+            printf("Filter by AVG(1), Generation(2), Career(3)\n");
             int Nopc;
             scanf("%d",&Nopc);
                 switch (Nopc){
                 case 1:
-                    int masque;
-                    printf("Que promedio?\n");
-                    scanf("%f", &p);
-                    printf("Mayor(1) o menor(2)?");
-                    scanf("%d", &masque);
-                    if (masque==1)
+                    int MoreThan;
+                    printf("What AVG?\n");
+                    scanf("%f", &TempGrade);
+                    printf("Higher(1) or Lower(2)?");
+                    scanf("%d", &MoreThan);
+                    if (MoreThan==1)
                     {
-                        FiltraApCompu(nombreArc, p);
+                        FilterAVGHighCompu(FileName, TempGrade);
                     }else{
-                        FiltraReCompu(nombreArc, p);
+                        FilterAVGLowCompu(FileName, TempGrade);
                     }
                     break;
                 case 2:
-                    printf("Que generacion?\n");
-                    scanf("%d", &gener);
-                    FiltraGenCompu(nombreArc, gener);
+                    printf("Which Generation? ");
+                    scanf("%d", &Gener);
+                    FilterGenerCompu(FileName, Gener);
                     break;
                 case 3:
-                    printf("Que carrera?\n");
-                    scanf("%s", tempnam);
-                    FiltraCarrCompu(nombreArc, tempnam);
+                    printf("What Career? ");
+                    scanf("%s", TempName);
+                    FilterCareerCompu(FileName, TempName);
                     break;
                 default:
                     break;
                 }         
             break;   
+        case 6:
+            /*
+            printf("Sort by Name(1), ID(2), AVG(3), Career(4), Generation(5)?\n");
+            int order=1;
+            SortCompu(FileName, order);
+            PrintfCompu(FileName);
+            */
+           ordenamiento_Alu();
+            break;
+        case 7:
+            //
+            FILE *fr = fopen(FileName, "rb");
+            if (!fr){        
+                exit(1);
+            }
+            FILE *tempFile = fopen("temp.dat", "ab"); // Temporary file
+            if (!tempFile){    
+                exit(1);
+            }
+            Student student;
+            while (fread(&student, sizeof(Student), 1, fr) == 1){
+                fwrite(&student, sizeof(Student), 1, tempFile);
+            }
+            fclose(fr);
+            fclose(tempFile);
+            break;
         default:
-            printf("Opcion no valida: \n");
+            printf("ERROR\n");
             break;
         }
-        printf("\nTerminar?\n");
-        scanf("%d", &fin);
+        printf("End? ");
+        scanf("%d", &End);
     }
     return 0;
 }
