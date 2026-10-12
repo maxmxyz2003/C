@@ -1,8 +1,4 @@
-/*
-Autor: Maximiliano Mendez Hernandez
-Fecha: 05/10/23
-Descripcion: Adaptar listas ligadas como una cola dinamica 
-*/
+
 #include <stdio.h>
 #include <stdlib.h>
 // Nodo
